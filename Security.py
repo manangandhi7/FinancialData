@@ -1,4 +1,3 @@
-
 import csv
 import os
 import pandas
@@ -10,7 +9,7 @@ class Security:
         self.name = ""
         self.face_value = 0.0
         self.number_of_shares = 0.0
-        with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..\data\TCS.csv'), 'r') as f:
+        with open(os.path.join(os.path.dirname(os.path.realpath(__file__)), '..\play_data\TCS.csv'), 'r') as f:
             self.history_data = [row for row in csv.reader(f) if row[0] != '']
         #print 'new sec initialized!'
 
