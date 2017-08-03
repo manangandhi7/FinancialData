@@ -27,7 +27,7 @@ import matplotlib.dates as mdates
 import numpy
 
 #start
-datafile = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data\\TCS.csv')
+datafile = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'play_data\\TCS.csv')
 
 import matplotlib.pyplot as plt
 from numpy import genfromtxt
