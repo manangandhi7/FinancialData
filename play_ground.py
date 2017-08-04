@@ -27,30 +27,37 @@ import matplotlib.dates as mdates
 import numpy
 
 #start
-datafile = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'play_data\\TCS.csv')
+
+file_name='play_data\\TCS.csv'
+file_name='data\\NSE-SCHNEIDER.csv'
+date_format = '%d-%B-%Y'
+date_format = '%Y-%m-%d' #NSE
+closing_price_column = 5
+ycolumn_to_plot = 7
+
+datafile = os.path.join(os.path.dirname(os.path.realpath(__file__)), file_name)
 
 import matplotlib.pyplot as plt
 from numpy import genfromtxt
 data=genfromtxt(datafile, dtype=str, delimiter=",", skip_header=1)#,names=['x','y'])
 
 
-closing_price = numpy.zeros((len(data),1))
-closing_price[0] = 0.0
+daily_percentage_change = numpy.zeros((len(data),1))
+daily_percentage_change[0] = 0.0
 first_row = data[0]
 for i in range(1, len(data)):
     row = data[i]
     prev_row = data[i - 1]
     try:
-        closing_price[i] = ((float(prev_row[4]) - float(row[4])) / float(row[4]))
+        daily_percentage_change[i] = ((float(prev_row[closing_price_column]) - float(row[closing_price_column])) / float(row[closing_price_column]))
         #print (str(row[5]) + '-' + str(prev_row[5]) + ' / '+ str(prev_row[5]) +' = ' + str(z[i]))
     except ValueError:
-        closing_price[i] = 0.0
+        daily_percentage_change[i] = 0.0
 
-data = numpy.append(data, closing_price, axis=1)
-x=[datetime.strptime(row[0], '%d-%B-%Y') for row in data]
-y=[row[13] for row in data]
-closing_price=[row[4] for row in data]
-num_of_shares=[row[6] for row in data]
+data = numpy.append(data, daily_percentage_change, axis=1)
+x=[datetime.strptime(row[0], date_format) for row in data]
+#y=[row[ycolumn_to_plot] for row in data]
+y=[row[ycolumn_to_plot] for row in data]
 
 '''
 columnsize = int(len(x)/6)
@@ -70,9 +77,6 @@ yearsFmt = mdates.DateFormatter('%Y')
 
 fig, ax = plt.subplots()
 ax.plot(x, y)
-
-ax.plot(x, num_of_shares)
-ax.plot(x, closing_price)
 
 # format the ticks
 ax.xaxis.set_major_locator(years)
