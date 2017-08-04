@@ -2,10 +2,14 @@ import os
 from numpy import genfromtxt
 from datetime import datetime
 import os
-import matplotlib.dates as mdates
 import scipy
 import math
 import numpy
+
+try:
+    import Queue as Q  # ver. < 3.0
+except ImportError:
+    import queue as Q
 
 
 percentang_change_column = 6
@@ -17,7 +21,6 @@ class holder:
         self.face_value = 0.0
         self.number_of_shares = 0.0
         self.data = data
-        print 'new sec initialized!'
 
 def find_correlation(holder1, holder2):
     sec1 = []
@@ -49,6 +52,20 @@ def find_correlation(holder1, holder2):
     #print (value)
     return numpy.corrcoef(sec1, sec2)
 
+def find_cross_correl(stocks):
+    correlation = {}
+
+    #find correlation between (price change | volume change | etc.) in %
+    #this does not consider share splitting or change in base price
+    for stock in stocks.keys():
+        for inner_stock in stocks.keys():
+            if stock == inner_stock:
+                continue
+            name = stock + '--' + inner_stock
+            #find_correlation(stocks[stock], stocks[inner_stock])
+            correl = find_correlation(stocks[stock], stocks[inner_stock])
+            correlation[name] = correl
+    return correlation
 
 #dict that holds every security
 stocks = {}
@@ -70,7 +87,6 @@ for file in os.listdir("data"):
             row[0] = datetime.strptime(row[0], '%Y-%m-%d')
             try:
                 z[i] = ((float(row[5]) - float(prev_row[5])) / float(prev_row[5]))
-                #print (str(row[5]) + '-' + str(prev_row[5]) + ' / '+ str(prev_row[5]) +' = ' + str(z[i]))
             except ValueError:
                 z[i] = 0.0
 
@@ -80,33 +96,17 @@ for file in os.listdir("data"):
         stocks[file] = holder(data, name=file)
         #print (file_path)
 
-correlation = {}
-#find correlation between (price change | volume change | etc.) in %
-#this does not consider share splitting or change in base price
-for stock in stocks.keys():
-    for inner_stock in stocks.keys():
-        if stock == inner_stock:
-            continue
-        name = stock + '--' + inner_stock
-        #find_correlation(stocks[stock], stocks[inner_stock])
-        correl = find_correlation(stocks[stock], stocks[inner_stock])
-        correlation[name] = correl
+correlation = find_cross_correl(stocks)
 
-max = -2.0
-max_name = ''
-min = 2.0
-min_name = ''
+q = Q.PriorityQueue()
 
 for key in correlation.keys():
     if len(correlation[key]) > 0 and not math.isnan(correlation[key][0][1]):
-        if (correlation[key][0][1] > max):
+        q.put((correlation[key][0][1],key))
+        '''if (correlation[key][0][1] > max):
             max = correlation[key][0][1]
             max_name = key
-        if (correlation[key][0][1] < min):
-            min = correlation[key][0][1]
-            min_name = key
-
-print ('\nmax_name = ' + max_name)
-print ('max = ' + str(max))
-print ('\nmin_name = ' + min_name)
-print ('min = ' + str(min))
+        '''
+while not q.empty():
+    print q.get()
+    q.get()
