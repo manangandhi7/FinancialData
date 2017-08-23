@@ -11,6 +11,12 @@ from extract_stuff import *
 layout_list = get_data_from_pdf('reports/2016/Balrampur_chini.1.pdf')
 #layout_list = get_data_from_pdf('reports/2016/Emami.1.pdf')
 #layout_list = get_data_from_pdf('tata_motors.pdf')
+#layout_list = get_data_from_pdf('reports/2016/Alembic_pharma.1.pdf')
+#layout_list = get_data_from_pdf('reports/2016/GE_power.1.pdf')
+#layout_list = get_data_from_pdf('reports/2016/Timken_india.1.pdf')
+#layout_list = get_data_from_pdf('reports/2016/Zandu_realty.1.pdf')
+
+
 #reports/2016/Emami.1.pdf
 #Balrampur_chini.1.pdf
 #tata_motors.pdf
@@ -25,8 +31,10 @@ text = text.replace('’', '\'')
 text = text.replace('\t', ' ')
 text = text.replace('\r', ' ')
 text = text.replace('\n', ' ')
-print text
+
+#print text
 #retrieve currency
+#find the frequency of INR, USD, EUR, rupees, euros, dollars. that will tell the currency
 
 #find_date(text)
 
