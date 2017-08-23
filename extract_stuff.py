@@ -16,129 +16,95 @@ import pdfminer
 
 full_months = 'january|february|march|april|may|june|july|august|september|october|november|december'
 short_months = 'jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec'
-#dates = '1st|2nd|3rd|4th|5th|6th|7th|8th|9th|10th|11th|12th|13th|14th|15th|16th|17th|18th|19th|20th|21st|22nd|23rd|24th|25th|26th|27th|28th|29th|30th|31st'
 extensions = 'st|th|rd'
+spacers2 = ' |\''
+day_spacers =' |\.|\\|/'
+month_spacers = ' |\'|,|\.|\\|/'
 
+#print re.findall(re_date1, text, flags=re.IGNORECASE)
+#find_date('31st March, 2017')
 
+popular_date_formats = []
 
-def regex_match(text, regex):
-    print 'nothing'
+#3,02,78 - wrong value
+#For the year ended 31st March, 2016 (rupees in Crores)
+#2016-17
+#March 2017
+#2016-2017
+space = '[ -]'
+popular_date_formats.append('20\d{2}'+ space + '{1,2}' +'\d{4}') #2016-2017
 
-def find_date(text):
-    #result = re.match(pattern, string)
-    date_part = '(\d{1,2}\\t*\\n*\\r*[/ -])?'
-    date_part = '((30|31|((1|2)[0-9])|(0?[1-9]))\\t*\\n*\\r*[\\/ -])?'
-    month_part = '(' + full_months + '|'+ short_months+'|\d{2})\\t*\\n*\\r*[\'/ -]'
-    year_part = '\\t*\\n*\\r*(\d{4}|\d{2})'
-    re_date1 = date_part + '\\t*\\n*\\r*' + month_part + '\\t*\\n*\\r*' +  year_part
+date_part = '(31|30|((1|2)[0-9])|(0?[1-9]))'
+month_part = '(11|12|0[1-9]{1})'
+year_part = '(\d{4}|\d{2})'
 
-    #\d{1,2}([ \t\r\n]{0,2}(st|th|nd)) = 1 st
+regex = date_part + '(' + spacers2 + ')?' + '(' + extensions + ')?'
+regex = regex + '(' + day_spacers + '){1,2}'
 
-    '''m = re.search(re_date1, text)
-    if m is not None:
-        print m.group(0)
-    m = re.search('(' + full_months + '|' + short_months + ')', text)
-    if m is not None:
-        print m.group(0)
-    '''
-    #re_date1 = full_months + '|' + short_months + '|\d{2}[/ -]'
-    print re_date1
-    print re.findall(re_date1, text, flags=re.IGNORECASE)
-    #for item in m:
-     #   print str(m)
+date1 = regex + '(' + full_months + '|' + short_months + '|' + month_part + ')' + '(' + month_spacers + '){1,2}'
+date1 += year_part
+popular_date_formats.append(date1) #dd-mmm/mm-yyyy/yy
 
-def find_date_in_headers(text):
-    #For the year ended 31st March, 2016 (rupees in Crores)
-    #2016-2017
-    #March 2017
+date4 = '(' + full_months + '|' + short_months + ')' + '( |\'|-){1,2}'
+date4 += date_part + '(' + spacers2 + ')?' + '(' + extensions + ')?'
+date4 += '[, \']{1,2}' + year_part
+popular_date_formats.append(date4)
 
-    #2016-2017
-    space = '[\\t\'/ -]'
-    if re.match('20\d{2}'+ space + '{0,2}' +'\d{4}', text):
-        return True
-    #2016-17
-    if re.match('20\d{2}'+ space + '{0,2}' +'\d{2}', text):
+date2 = '(' + full_months + '|' + short_months + '|'+ month_part +')' + '(' + month_spacers + '){1,2}'
+date2 += '\d{4}'
+popular_date_formats.append(date2) #mmm/mm-yyyy
+
+date3 = '(' + full_months + '|' + short_months + ')' + '(' + month_spacers + '){1,2}'
+date3 += year_part
+popular_date_formats.append(date3) #mmm-yyyy/yy
+
+popular_date_formats.append('20\d{2}'+ space + '{1,2}' +'\d{2}') #2016-17
+
+def find_dates(text):
+    #TODO replace [/\'] with - for the dates
+    lst_dates = []
+    found = True
+    while found == True:
+        found = False
+        for item in popular_date_formats:
+            m = re.search(item, text, flags=re.IGNORECASE)
+            if m is not None:
+                date = m.group(0)
+                found = True
+                text = text.replace(date, ' ')
+                lst_dates.append(date)
+                break
+    if len(lst_dates) > 0:
         return True
     return False
-    #result = re.match(pattern, string)
-    date_part = '(\d{1,2}\\t*\\n*\\r*[/ -])?'
-    date_part = '((30|31|((1|2)[0-9])|(0?[1-9]))\\t*\\n*\\r*[\\/ -])?'
-    month_part = '(' + full_months + '|'+ short_months+'|\d{2})\\t*\\n*\\r*[\'/ -]'
-    year_part = '\\t*\\n*\\r*(\d{4}|\d{2})'
-    re_date1 = date_part + '\\t*\\n*\\r*' + month_part + '\\t*\\n*\\r*' +  year_part
+    #return lst_dates
 
-    #\d{1,2}([ \t\r\n]{0,2}(st|th|nd)) = 1 st
-
-    '''m = re.search(re_date1, text)
-    if m is not None:
-        print m.group(0)
-    m = re.search('(' + full_months + '|' + short_months + ')', text)
-    if m is not None:
-        print m.group(0)
-    '''
-    #re_date1 = full_months + '|' + short_months + '|\d{2}[/ -]'
-    print re_date1
-    print re.findall(re_date1, text, flags=re.IGNORECASE)
-    #for item in m:
-     #   print str(m)
+def find_financial_year(layout, bbox):
+    for obj in layout._objs:
+        # if it's a textbox, print text and location
+        if isinstance(obj, pdfminer.layout.LTTextBoxHorizontal):
+            for obj2 in obj._objs:
+                date = None
+                text = obj2.get_text()
+                lst_dates = find_dates(text)
+                for item in lst_dates:
+                    if find_text_in_horizon(obj2.bbox[1], obj2.bbox[3], layout, 'note'):
+                        date = item
+                        print date
+                        break
+                if date is not None:
+                    break
+    return lst_dates
 
 #find_date('30   Sep ’ 16 June’ 16 Sep')
-
-'''
-
-
-find_date('30 sep\'16')
-find_date('01-06\'2017')
-find_date('01-june-2017')
-find_date('1-june-2017')
-find_date('01 june 2017')
-find_date('01/06/2017')
-find_date('01 06 2017')
-find_date('06 jun 2017')
-find_date('06 jun 17')
-find_date('01 06 17')
-find_date('june 17')
-find_date('2017 - 18')
-find_date('Jun 17 - May 18')
-
-
-This is the keyword we are looking for:
-
-"STATEMENT OF PROFIT AND LOSS"
-
-
-separator [-' ]
-19dd-dd
-20dd-dd
-dd-dd
-mm' yy
-mm' yyyy
-mmm' yyyy
-mmm' yy
-
-For the year ended 31st March, 2016 (rupees in Crores)
-2016-2017
-March 2017
-
-
-pre-tax profit/(loss)
-profit before tax
-Profit/ (loss) before tax (VII-VIII)
-
-profit after tax
-profit of the year
-
-
-
-
-'''
-
 
 lst_profit_before_tax = ['pre-tax profit/\(loss\)',
                         'profit before tax',
                         'Profit/ \(loss\) before tax']
 def find_profit_before_tax(obj):
     for line in lst_profit_before_tax:
+        #if re.search('before tax', obj.get_text(), re.IGNORECASE):
+        #    print obj.get_text()
         if re.search(line, obj.get_text(), re.IGNORECASE):
             return True
     return False
@@ -158,8 +124,8 @@ def find_profit_after_tax(layout_list):
 
     # loop over the object list
     for layout in layout_list:
-        for obj in layout._objs:
 
+        for obj in layout._objs:
             # if it's a textbox, print text and location
             if isinstance(obj, pdfminer.layout.LTTextBoxHorizontal):
                 #if re.search('profit before tax', obj.get_text(), re.IGNORECASE):
@@ -187,11 +153,13 @@ def find_profit_after_tax(layout_list):
                     continue
                 try:
                     number = float(get_number_from_string(item.get_text()))
+                    #lst = find_financial_year(layout, item.bbox)
+
                     #go up and find the date
                     lst = get_vertical_line(layout, item.bbox[0], item.bbox[1], item.bbox[2], item.bbox[3])
                     print str(number) + ' : '
                     for item2 in lst:
-                        if find_date_in_headers(item2.get_text()):
+                        if find_dates(item2.get_text()):
                         #if re.match('\d{4}-\d{4}', item2.get_text()):
                             print str(number) + ' : ' + item2.get_text()
                 except:
@@ -221,29 +189,58 @@ def get_vertical_line(layout, x1, y1, x2, y2):
                 #lst_profit_before_tax.append(obj)
             #print "%6d, %6d, %s" % (obj.bbox[0], obj.bbox[1], obj.get_text()) #.replace('\n', ''))
             for obj2 in obj._objs:
-                if(fuzzy_line_match(x1, x2, obj2.bbox[0], obj2.bbox[2])):
+                if(fuzzy_veritcal_line_match(x1, x2, obj2.bbox[0], obj2.bbox[2])):
                     lst.append(obj2)
     return lst
 
 def fuzzy_line_match(x1, x2, x1d, x2d):
-    if x1 + x2 * 1.035 > x1d + x2d and x1 + x2 * 0.965 < x1d + x2d:    #3%? why not 4%? need more data to decide threshold
+    if (x1 + x2) * 1.035 > x1d + x2d and (x1 + x2) * 0.965 < x1d + x2d:    #3%? why not 4%? need more data to decide threshold
         return True
     return False
 
+def find_text_in_horizon(y1, y2, layout, text, threshold=1):
+    if threshold != 1:
+        raise Exception('I don\'t know how to utilize threshold!')
+    for obj in layout._objs:
+        if isinstance(obj, pdfminer.layout.LTTextBoxHorizontal):
+            for obj2 in obj._objs:
+                if(fuzzy_line_match(y1, y2, obj2.bbox[1], obj2.bbox[3])):
+                    if re.search(text, obj2.get_text(),flags=re.IGNORECASE):
+                        return True
+    return False
 
-'''
-NEXT TASKS:
+def fuzzy_veritcal_line_match(x1, x2, x1d, x2d):
+    left = -1.0
+    right = -1.0
+    center = 1000000.0
+    if x2 - x1 > x2d - x1d:
+        center = (x2d + x1d)/2
+        left = x1
+        right = x2
+    else :
+        center = (x1 + x2)/2
+        left = x1d
+        right = x2d
+    #algo1
+    '''
+    if center > x2d or center < x1d:
+        return False
+    return True
+    '''
+    #algo2
+    if (x1 <= x1d and x2 > x1d) or (x1 > x1d and x2d > x1 ): #TODO also check for range of at least 50%
+        return True
+    return False
 
-Create training and test set:
-    get all the reports in one folder
-    manually fill their values in a csv
+#TODO use this method before date parsing and other lookups
+def preprocess_text(text):
+    return remove_spaces(text)
 
-find all the possible dates:
-    also, create a library for that?
+def remove_spaces(text):
+    text = text.replace('\t', ' ')
+    text = text.replace('\n', ' ')
+    text = text.replace('\r', ' ')
+    while '  ' in text:
+        text = text.replace('  ', ' ')
+    return text
 
-create a module for comparing results:
-    accuracy
-    anything else?
-
-
-'''
