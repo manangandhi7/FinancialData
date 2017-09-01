@@ -34,6 +34,7 @@ def custom_pdf_processor_for_classification(pdf_pages):
 
     for page in pdf_pages:
 
+
         # read the page into a layout object
         interpreter.process_page(page)
         layout = device.get_result()
@@ -61,7 +62,60 @@ must_have_words = ['profit',
                    'cost',
                    'before',
                    'after',
-                   'tax']
+                   'Consolidated',
+                   'income',
+                   'earning',
+                   'expense',
+                   'basic',
+                   'diluted',
+                   'revenue',
+                   'operati',
+                   'exceptional'
+                   'tax'
+                ]
+
+'''
+
+thought experiment:
+
+lightning network:
+
+government creates coins:
+
+users get it through salary and stuff
+
+users can spend it because they know the value (in god we trust)
+
+the problem with cryptos is: it needs a central ledger.
+what if you can create a currency which has a wallet with your own coins
+
+coin client:
+signed packet from an authority
+'''
+
+import PyPDF2
+
+
+def split_pdf_pages(input_pdf_path, target_dir, file_name, page_num, fname_fmt=u"{num_page:04d}.pdf"):
+    if not os.path.exists(target_dir):
+        os.makedirs(target_dir)
+
+    with open(input_pdf_path, "rb") as input_stream:
+        input_pdf = PyPDF2.PdfFileReader(input_stream)
+
+        if input_pdf.flattenedPages is None:
+            # flatten the file using getNumPages()
+            input_pdf.getNumPages()  # or call input_pdf._flatten()
+
+        #for num_page, page in enumerate(input_pdf.flattenedPages):
+        if True:
+            output = PyPDF2.PdfFileWriter()
+            #output.addPage(page)
+            output.addPage(input_pdf.getPage(page_num))
+
+            file_name = os.path.join(target_dir, file_name + '.' + fname_fmt.format(num_page=page_num))
+            with open(file_name, "wb") as output_stream:
+                output.write(output_stream)
 
 #layout contains all the information about the text
 #layout_list = get_data_from_pdf('reports/new/DLF.pdf')
@@ -74,11 +128,11 @@ must_have_words = ['profit',
 #layout_list = get_data_from_pdf('reports/2016/Timken_india.1.pdf')
 #layout_list = get_data_from_pdf('reports/2016/Zandu_realty.1.pdf')
 debug = ''
-'''
-for file in os.listdir("reports/new"):
+
+for file in os.listdir("reports/alll"):
     if file.endswith(".pdf"):
         try:
-            file_path = os.path.join("reports/new", file)
+            file_path = os.path.join("reports/alll", file)
             layout_list = get_data_from_pdf(file_path)
         except:
             print 'could not process : ' + file
@@ -91,10 +145,9 @@ for file in os.listdir("reports/new"):
     #text = text.replace('\t', ' ')
     #text = text.replace('\r', ' ')
     #text = text.replace('\n', ' ')
-    '''
 
-if True:
-    layout_list = get_data_from_pdf('reports/new/Symphony.pdf')
+#if True:
+    #layout_list = get_data_from_pdf('reports/new/Symphony.pdf')
     max_sim = 0.0
     max_lang_model = None
     max_text = ''
@@ -108,22 +161,24 @@ if True:
         for item in must_have_words:
             if re.search(item, text, flags=re.IGNORECASE):
                 count += 1
-        if count < 6: #this has nothing to do with the model, just an optimization step
+        if count < 8: #this has nothing to do with the model, just an optimization step
             continue
         temp_lang_model = LangModel()
-        temp_lang_model.add_data_from_layout(layout)
+        temp_lang_model.add_data_from_text(text)
         sim2 = lang_model.get_model_similarity(temp_lang_model)
         debug += 'page : ' + str(num) + ' similarity : ' + str(sim2) + '\n'
         if sim2 > max_sim:
             max_sim = sim2
-            max_lang_model = temp_lang_model
+            #max_lang_model = temp_lang_model
             max_page = num
-            max_text = get_all_text_from_single_layout(layout)
+            #max_text = text
 
     #print max_sim
     #print max_text
     #print max_page
-    print ' : max_page : ' + str(max_page)
+    if max_page > 0:
+        split_pdf_pages(file_path, 'reports/2016', file.replace('.pdf', ''), max_page - 1)
+    print file + ' : max_page : ' + str(max_page)
 
 file2 = open('output.txt', 'w+')
 file2.write(debug)
