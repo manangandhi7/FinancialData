@@ -1,4 +1,5 @@
-import os
+__author__ = 'manan'
+
 from numpy import genfromtxt
 from datetime import datetime
 import os
@@ -12,7 +13,7 @@ except ImportError:
     import queue as Q
 
 
-percentang_change_column = 8
+percentang_change_column = 6
 
 class holder:
     def __init__(self, data, name=''):
@@ -41,8 +42,8 @@ def find_correlation(holder1, holder2):
         #print holder1.data[row1_count][0] + ' = ' + holder2.data[row2_count][0]
     #else:
         while (holder1.data[row1_count][0] == holder2.data[row2_count][0]):
-            sec1.append(float(holder1.data[row1_count][percentang_change_column]))
-            sec2.append(float(holder2.data[row2_count][percentang_change_column]))
+            sec1.append(holder1.data[row1_count][percentang_change_column])
+            sec2.append(holder2.data[row2_count][percentang_change_column])
             row1_count = row1_count + 1
             row2_count = row2_count + 1
             if len(holder1.data) - 1 <= row1_count or len(holder2.data) - 1 <= row2_count:
@@ -108,5 +109,5 @@ for key in correlation.keys():
             max_name = key
         '''
 while not q.empty():
-    print (q.get())
+    print q.get()
     q.get()
