@@ -1,3 +1,4 @@
+__author__ = 'manan'
 
 from data_holder.Security import Security
 import matplotlib
