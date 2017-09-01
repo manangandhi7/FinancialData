@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+from nltk.parse.malt import find_malt_model
+
 __author__ = 'manan'
 import re
 
@@ -13,6 +15,9 @@ from pdfminer.pdfdevice import PDFDevice
 from pdfminer.layout import LAParams
 from pdfminer.converter import PDFPageAggregator
 import pdfminer
+from data_holder.LangModel import *
+
+gram_count = 3
 
 full_months = 'january|february|march|april|may|june|july|august|september|october|november|december'
 short_months = 'jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec'
@@ -80,6 +85,8 @@ def find_dates(text):
     #return lst_dates
 
 def find_financial_year(layout, bbox):
+    #lst = get_vertical_line(layout, bbox[0], bbox[1], bbox[2], bbox[3])
+
     for obj in layout._objs:
         # if it's a textbox, print text and location
         if isinstance(obj, pdfminer.layout.LTTextBoxHorizontal):
@@ -96,17 +103,77 @@ def find_financial_year(layout, bbox):
                     break
     return lst_dates
 
+
+def find_me_box(obj, text):
+    x1 = 0.0
+    x2 = 0.0
+    y1 = 0.0
+    y2 = 0.0
+
+    index = 0
+    temp_index = 0
+    objs = obj._objs
+
+    for i in range(0, len(objs)):
+        if isinstance(objs[i], pdfminer.layout.LTChar):
+            if objs[i].get_text() == text[index]:
+                begin_date = objs[i]
+                temp_index = i
+                index += 1
+
+
+def find_financial_year2(layout, bbox):
+    lst = get_vertical_line(layout, bbox[0], bbox[1], bbox[2], bbox[3])
+
+    lst2 = []
+
+    for obj in lst:
+        text = obj.get_text()
+        lst_dates = find_dates(text)
+        for item in lst_dates:
+
+            if find_text_in_horizon(obj.bbox[1], obj.bbox[3], layout, 'note'):
+                date = item
+                print date
+                lst2.append(item)
+
+    #if one date is found, perfect
+    if len(lst2) == 1:
+        return date
+
+    if len(lst2) > 0:
+
+        return date
+
+    #if not, try to find the closest one
+    for item in lst:
+        text = item.get_text()
+        lst_dates = find_dates(text)
+        for item in lst_dates:
+            if find_text_in_horizon(item.bbox[1], item.bbox[3], layout, 'note'):
+                date = item
+                print date
+                lst2.append(item)
+                break
+
+    return lst_dates
+
 #find_date('30   Sep ’ 16 June’ 16 Sep')
 
-lst_profit_before_tax = ['pre-tax profit/\(loss\)',
+regex_profit_before_tax = [
                         'profit before tax',
-                        'Profit/ \(loss\) before tax']
+                        'pre-tax profit/\(loss\)',
+                        'Profit/ \(loss\) before tax',
+                        'Profit (.*?) before tax'
+                        ]
+
 def find_profit_before_tax(obj):
-    for line in lst_profit_before_tax:
+    for line in regex_profit_before_tax:
         #if re.search('before tax', obj.get_text(), re.IGNORECASE):
         #    print obj.get_text()
         if re.search(line, obj.get_text(), re.IGNORECASE):
             return True
+
     return False
 
 def get_number_from_string(text):
@@ -115,6 +182,26 @@ def get_number_from_string(text):
         text = text.replace(str, '')
     return text
 
+def ngrams(input, n):
+  #input = input.split(' ')
+  output = []
+  for i in range(len(input)-n+1):
+    output.append(input[i:i+n])
+  return output
+
+def find_sim_ngrams(first, second):
+    count = 0
+    for item1 in first:
+        if item1 in second:
+            count += 1
+    for item2 in second:
+        if item2 not in first:
+            count -= 1
+    return count
+
+profit_bt_model = LangModel()
+profit_bt_model.add_data_from_text('profit loss before EXCEPTIONAL ITEMS AND TAX'.lower())
+
 #first find all the strings
 #classify if possible so we have minimum candidates by positions or by other text on the page
 #next,
@@ -122,20 +209,50 @@ def get_number_from_string(text):
 def find_profit_after_tax(layout_list):
     lst_profit_before_tax = []
 
+    candidates_profit_before_tax = []
+
     # loop over the object list
     for layout in layout_list:
-
         for obj in layout._objs:
             # if it's a textbox, print text and location
             if isinstance(obj, pdfminer.layout.LTTextBoxHorizontal):
                 #if re.search('profit before tax', obj.get_text(), re.IGNORECASE):
                     #lst_profit_before_tax.append(obj)
                 #print "%6d, %6d, %s" % (obj.bbox[0], obj.bbox[1], obj.get_text()) #.replace('\n', ''))
+                if obj.get_text() == 'Profit before tax (I-II)':
+                    print 'ping me'
                 for obj2 in obj._objs:
-                    if find_profit_before_tax(obj2):
-                        lst_profit_before_tax.append(obj2)
+                    #if find_profit_before_tax(obj2):
+                        #lst_profit_before_tax.append(obj2)
+                    for line in regex_profit_before_tax:
+                        if re.search(line, obj.get_text(), re.IGNORECASE):
+                            lst_profit_before_tax.append(obj2)
+                            #print obj2.get_text()
+                        elif re.search('profit', obj.get_text(), re.IGNORECASE) or re.search('before', obj.get_text(), re.IGNORECASE) or re.search('tax', obj.get_text(), re.IGNORECASE):
+                            candidates_profit_before_tax.append(obj2)
+
+        #continue
+        #if not found, try to find the one with the highest probability:
+        max_sim = -100
+        max_match_obj = None
+        if len(lst_profit_before_tax) == 0:
+            for obj2 in candidates_profit_before_tax:
+                curr_model = LangModel()
+                curr_model.add_data_from_text(obj2.get_text().lower())
+                #sim2 = profit_bt_model.get_model_similarity(curr_model)
+                #print profit_bt_model.dict.values()
+                #print curr_model.dict.values()
+                sim2 = profit_bt_model.KL(curr_model)
+                if sim2 > max_sim:
+                    max_sim = sim2
+                    max_match_obj = obj2
+
+        if max_match_obj is not None:
+            lst_profit_before_tax.append(max_match_obj)
+            print 'CATCH : ' + max_match_obj.get_text()
 
         for horizontal_box in lst_profit_before_tax:
+            '''
             if(horizontal_box.bbox[0] < (layout.bbox[0] + layout.bbox[2])/2):
                 print 'left'
             else:
@@ -145,8 +262,30 @@ def find_profit_after_tax(layout_list):
                 print 'bottom'
             else:
                 print 'top'
+            '''
 
             lst_horizonto = get_horizontal_line(layout, horizontal_box.bbox[0], horizontal_box.bbox[1], horizontal_box.bbox[2], horizontal_box.bbox[3])
+
+            # new_setup, delete if doesnt work
+            lst2 = []
+            max_height = -1.0
+            min_height = 1000.0
+
+            for item in lst_horizonto:
+                height = abs(item.bbox[1] - item.bbox[3])
+                if height > max_height:
+                    max_height = height
+                if height < min_height:
+                    min_height = height
+
+            for item in lst_horizonto:
+                distance = abs(horizontal_box.bbox[1] + horizontal_box.bbox[3] - item.bbox[1] - item.bbox[3])/2
+                if distance <= min_height/2:
+                    lst2.append(item)
+
+            lst_horizonto = lst2
+            # new_setup, delete if doesnt work
+
             print horizontal_box.get_text()
             for item in lst_horizonto:
                 if item.bbox[0] <= horizontal_box.bbox[0]:
@@ -244,3 +383,39 @@ def remove_spaces(text):
         text = text.replace('  ', ' ')
     return text
 
+
+'''
+NEXT TASKS:
+
+Create training and test set:
+    get all the reports in one folder
+    manually fill their values in a csv
+
+find all the possible dates:
+    also, create a library for that?
+
+create a module for comparing results:
+    accuracy
+    anything else?
+
+This are the keyword we are looking for:
+
+"STATEMENT OF PROFIT AND LOSS"
+
+For the year ended 31st March, 2016 (rupees in Crores)
+
+pre-tax profit/(loss)
+profit before tax
+Profit before Exceptional item & tax
+Profit/ (loss) before tax (VII-VIII)
+Profit for the year = profit after tax
+
+profit after tax
+profit of the year
+
+
+HSBC, Citigroup, Morgan Stanley say end of market boom is nigh
+
+Breakdown in trading patterns is signal to get out soon
+
+'''
